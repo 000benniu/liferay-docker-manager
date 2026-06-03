@@ -602,7 +602,12 @@ class BaseHandler:
         try:
             p = Path(path)
             # Ensure we are targeting a file inside the directory
-            if p.suffix not in [".meta", ""]:
+            if p.is_dir() or (not p.exists() and not p.name.endswith(".meta") and not p.name == "meta"):
+                # If it's an existing directory, or it doesn't exist but doesn't look like a meta file
+                target = p / ".liferay-docker.meta"
+                if (p / "meta").exists() and not target.exists():
+                    target = p / "meta"
+            elif p.suffix not in [".meta", ""]:
                 # Assuming it's already a file path
                 target = p
             else:

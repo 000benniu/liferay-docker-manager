@@ -256,12 +256,12 @@ class InfraService:
 
         # Generate Traefik Dynamic Config for this host
         try:
-            config_content = f"""
-tls:
-  certificates:
-    - certFile: /etc/traefik/certs/{host_name}.pem
-      keyFile: /etc/traefik/certs/{host_name}-key.pem
-"""
+            config_content = (
+                "tls:\n"
+                "  certificates:\n"
+                f"    - certFile: /etc/traefik/certs/{host_name}.pem\n"
+                f"      keyFile: /etc/traefik/certs/{host_name}-key.pem\n"
+            )
             config_file = cert_dir / f"traefik-{host_name}.yml"
             from ldm_core.utils import safe_write_text
 

@@ -559,7 +559,8 @@ class ComposerService:
             )
 
         if ssl_enabled:
-            traefik_id = f"{project_name}-main"
+            safe_traefik_id = project_name.replace(".", "-")
+            traefik_id = f"{safe_traefik_id}-main"
             service["labels"].extend(
                 [
                     "traefik.enable=true",
@@ -743,7 +744,8 @@ class ComposerService:
                     services[svc_id]["deploy"] = {"replicas": scale}
 
                 if ssl_enabled:
-                    traefik_svc_id = f"{svc_id}-svc"
+                    safe_traefik_svc_id = svc_id.replace(".", "-")
+                    traefik_svc_id = f"{safe_traefik_svc_id}-svc"
                     labels.extend(
                         [
                             "traefik.docker.network=liferay-net",
