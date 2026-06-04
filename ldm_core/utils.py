@@ -400,6 +400,8 @@ def run_command(
             check=check,
             env=env,
             cwd=cwd,
+            encoding="utf-8",
+            errors="replace",
         )
 
         if result.returncode != 0 and not check:

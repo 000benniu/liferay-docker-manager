@@ -512,6 +512,7 @@ class ComposerService:
                 f"{project_name}-data:/opt/liferay/data",
                 f"{paths['modules'].as_posix()}:/opt/liferay/osgi/modules{z_label}",
                 f"{paths['cx'].as_posix()}:/opt/liferay/osgi/client-extensions{z_label}",
+                f"{paths['configs'].as_posix()}:/opt/liferay/osgi/configs{z_label}",
                 f"{paths['portal_log4j'].as_posix()}:/opt/liferay/osgi/log4j{z_label}",
             ],
             "networks": ["liferay-net"],

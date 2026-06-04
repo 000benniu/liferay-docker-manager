@@ -182,32 +182,6 @@ class SnapshotService(BaseHandler):
             or root.name.replace(".", "-")
         )
 
-        # Check if project uses shared search and service is running
-        if str(project_meta.get("use_shared_search", "false")).lower() == "true":
-            if self.manager.run_command(
-                ["docker", "ps", "-q", "-f", f"name={search_name}"]
-            ):
-                search_snapshot_name = f"{container_name}_{timestamp}"
-                UI.info(
-                    f"Triggering orchestrated search snapshot: {search_snapshot_name}..."
-                )
-                self.manager.run_command(
-                    [
-                        "docker",
-                        "exec",
-                        search_name,
-                        "curl",
-                        "-s",
-                        "-X",
-                        "PUT",
-                        f"localhost:9200/_snapshot/liferay_backup/{search_snapshot_name}?wait_for_completion=false",
-                        "-H",
-                        "Content-Type: application/json",
-                        "-d",
-                        json.dumps({"indices": f"{container_name}-*"}),
-                    ]
-                )
-
         # --- DATABASE SNAPSHOT (Orchestrated) ---
         db_type = project_meta.get("db_type", "hypersonic")
         db_snapshot_file = None
@@ -262,7 +236,7 @@ class SnapshotService(BaseHandler):
                         dump_cmd, capture_output=True
                     )
                     if sql_content:
-                        db_snapshot_file.write_text(sql_content)
+                        db_snapshot_file.write_text(sql_content, encoding="utf-8")
                         UI.success("Database dump completed.")
                     else:
                         UI.warning("Database dump returned no content.")
@@ -270,28 +244,6 @@ class SnapshotService(BaseHandler):
                 except Exception as e:
                     UI.warning(f"Database dump failed: {e}")
                     db_snapshot_file = None
-
-        # Wait for search snapshot if it was triggered
-        if search_snapshot_name:
-            if self._wait_for_search_snapshot(search_snapshot_name):
-                UI.success("Search snapshot completed.")
-                # Copy ES snapshot files to the backup dir so they are portable
-                try:
-                    es_backup_source = (
-                        get_actual_home() / ".ldm" / "infra" / "search" / "backup"
-                    )
-                    if es_backup_source.exists():
-                        snap_es_dir = paths["backups"] / timestamp / "search"
-                        from ldm_core.utils import safe_mkdir
-
-                        safe_mkdir(snap_es_dir, parents=True, exist_ok=True)
-                except Exception as e:
-                    UI.warning(f"Could not copy search snapshots: {e}")
-            else:
-                UI.warning(
-                    "Search snapshot failed or timed out. Project snapshot will proceed without it."
-                )
-                search_snapshot_name = None
 
         # --- VOLUME DEHYDRATION (LDM-382) ---
         # If using Named Volumes (macOS), sync volume data back to host before archiving
