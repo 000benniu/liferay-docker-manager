@@ -283,6 +283,7 @@ def get_parser():
     )
     run.add_argument("--no-up", action="store_true")
     run.add_argument("--no-wait", action="store_true")
+    run.add_argument("-r", "--no-resolve", action="store_true", help="Skip hostname resolution checks")
     run.add_argument("--mount-logs", action="store_true")
     run.add_argument("--gogo-port", type=int)
     run.add_argument("--jvm-args", help="Override Liferay JVM arguments")
