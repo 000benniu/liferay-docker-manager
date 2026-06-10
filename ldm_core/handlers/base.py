@@ -123,9 +123,9 @@ class BaseHandler:
 
         if unresolved:
             if self.non_interactive or getattr(self.args, "no_resolve", False):
-                            UI.info(
-                                f"Missing host entries detected: {', '.join(unresolved)}. Attempting non-interactive fix..."  
-                            )
+                UI.info(
+                    f"Missing host entries detected: {', '.join(unresolved)}. Attempting non-interactive fix..."  
+                )
                 if self._apply_hosts_fix(unresolved):
                     # Give the OS a moment to refresh DNS cache
                     import time
