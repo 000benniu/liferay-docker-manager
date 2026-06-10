@@ -412,10 +412,39 @@ class CloudService:
         is_new_project = not (root_path / PROJECT_META_FILE).exists()
         project_meta = self.manager.read_meta(root_path)
 
+        # LDM-428: Interactively ask for missing critical metadata before proceeding
+        missing_keys = []
+        for k in ["container_name", "tag"]:
+            if not project_meta.get(k):
+                missing_keys.append(k)
+
+        if missing_keys and not self.manager.non_interactive:
+            UI.info("Project metadata is missing required keys. Let's configure them:")
+            if "container_name" in missing_keys:
+                c_name = UI.ask("Container Base Name", default=root_path.name)
+                project_meta["container_name"] = c_name
+                project_meta["liferay_container_name"] = c_name
+            if "tag" in missing_keys:
+                tag = UI.ask(
+                    "Liferay DXP Version Tag (e.g. 2026.q1.7-lts)", default="2026.q1.7-lts"
+                )
+                project_meta["tag"] = tag
+                if not tag_for_seed:
+                    tag_for_seed = tag
+
+            # Ask for host_name explicitly to avoid collisions with global defaults
+            if "host_name" not in project_meta:
+                project_meta["host_name"] = UI.ask(
+                    "Virtual Hostname", default=root_path.name
+                )
+
+            # Write partial meta so subsequent calls don't complain
+            self.manager.write_meta(root_path, project_meta)
+
         # Resolve DB type early (Detection/Validation)
         db_type = self._resolve_hydrate_db_type(backup_dir_path)
 
-        if is_new_project and tag_for_seed:
+        if (is_new_project or missing_keys) and tag_for_seed:
             paths = self.manager.setup_paths(root_path)
             # Use the resolved db_type for seeding
             if self.manager.assets._ensure_seeded(tag_for_seed, db_type, paths):
@@ -439,12 +468,12 @@ class CloudService:
         if not backup_dir.exists() or not backup_dir.is_dir():
             UI.die(f"Backup directory not found or is not a directory: {backup_dir}")
 
-        if (
-            not (backup_dir / "database.gz").exists()
-            and not (backup_dir / "volume.tgz").exists()
-        ):
+        db_gz_files = [f for f in backup_dir.glob("*.gz") if not f.name.endswith(".tar.gz")]
+        tgz_files = list(backup_dir.glob("*.tgz"))
+
+        if not db_gz_files and not tgz_files and not (backup_dir / "volume").is_dir():
             UI.die(
-                f"Invalid cloud backup format in {backup_dir}. Missing database.gz or volume.tgz"
+                f"Invalid cloud backup format in {backup_dir}. Missing .gz (database) or .tgz (volume) files."
             )
 
         tag = getattr(self.manager.args, "tag", None)
@@ -454,7 +483,11 @@ class CloudService:
         """Attempts to detect the database type (mysql/postgresql) from a cloud backup's database.gz."""
         db_gz = backup_dir / "database.gz"
         if not db_gz.exists():
-            return None
+            gz_files = [f for f in backup_dir.glob("*.gz") if not f.name.endswith(".tar.gz")]
+            if gz_files:
+                db_gz = gz_files[0]
+            else:
+                return None
 
         import gzip
 

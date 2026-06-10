@@ -179,7 +179,7 @@ class SnapshotService(BaseHandler):
         container_name = (
             project_meta.get("liferay_container_name")
             or project_meta.get("container_name")
-            or root.name.replace(".", "-")
+            or root.name
         )
 
         # --- DATABASE SNAPSHOT (Orchestrated) ---
@@ -442,7 +442,7 @@ class SnapshotService(BaseHandler):
         container_name = (
             project_meta.get("liferay_container_name")
             or project_meta.get("container_name")
-            or paths["root"].name.replace(".", "-")
+            or paths["root"].name
         )
         if (
             self.manager.run_command(
@@ -458,6 +458,10 @@ class SnapshotService(BaseHandler):
         # 3. File System Restore (Standard or Cloud)
         files_tar = choice_path / "files.tar.gz"
         volume_tgz = choice_path / "volume.tgz"
+        if not volume_tgz.exists():
+            tgz_files = list(choice_path.glob("*.tgz"))
+            if tgz_files:
+                volume_tgz = tgz_files[0]
 
         if files_tar.exists():
             # Verify Integrity (Mandate 6.2)
@@ -512,16 +516,16 @@ class SnapshotService(BaseHandler):
                 UI.detail("  + Unpacking volume to host...")
                 shutil.copytree(str(choice_path / "volume"), str(target_data))
 
-                # 2. On macOS (Named Volumes), we must push the host data into the Docker volume.
-                if self.manager.composer.is_using_named_volumes():
-                    # LDM-423: Critical 'Sync Wait'. On macOS, the Docker hypervisor (VirtioFS)
-                    # needs a moment to 'see' the files we just wrote to the host before we
-                    # can mount them into a container for the tar-sync.
-                    time.sleep(2)
+            # 2. On macOS (Named Volumes), we must push the host data into the Docker volume.
+            if self.manager.composer.is_using_named_volumes():
+                # LDM-423: Critical 'Sync Wait'. On macOS, the Docker hypervisor (VirtioFS)
+                # needs a moment to 'see' the files we just wrote to the host before we
+                # can mount them into a container for the tar-sync.
+                time.sleep(2)
 
-                    UI.detail("  + Hydrating internal Docker volumes...")
+                UI.detail("  + Hydrating internal Docker volumes...")
 
-                    self._hydrate_named_volumes(paths)
+                self._hydrate_named_volumes(paths)
 
             UI.success("Cloud volume restoration completed.")
 
@@ -588,6 +592,10 @@ class SnapshotService(BaseHandler):
         # --- DATABASE RESTORE (Orchestrated) ---
         sql_file = choice_path / "database.sql"
         db_gz = choice_path / "database.gz"
+        if not db_gz.exists():
+            gz_files = [f for f in choice_path.glob("*.gz") if not f.name.endswith(".tar.gz")]
+            if gz_files:
+                db_gz = gz_files[0]
 
         # If cloud database dump exists but hasn't been extracted yet
         if db_gz.exists() and not sql_file.exists():
