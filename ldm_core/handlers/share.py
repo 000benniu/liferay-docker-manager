@@ -1090,9 +1090,15 @@ class ShareService:
                                 or "failed to register" in line.lower()
                                 or "error" in line.lower()
                             ):
-                                error_reason = (
-                                    f"Gateway Registration Failed: {line.strip()}"
-                                )
+                                if "403" in line and "reserved" in line.lower():
+                                    error_reason = (
+                                        f"Gateway Error (403): The custom subdomain '{subdomain}' must be reserved before use.\n"
+                                        f"    💡 Fix: Go to https://portal.lfr-demo.se/portal#reservations and explicitly reserve '{subdomain}' in your account, OR choose a different subdomain."
+                                    )
+                                else:
+                                    error_reason = (
+                                        f"Gateway Registration Failed: {line.strip()}"
+                                    )
                                 break
                         else:
                             error_reason = (

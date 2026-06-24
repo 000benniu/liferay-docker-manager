@@ -126,6 +126,14 @@ The Liferay Tunnel (`lfr-tunnel` or `lfr-tunnel-docker`) requires a Client Token
 3. **LDM Global Config**: Stored in `~/.ldmrc` under the `lfr_tunnel_token` key.
 4. **Interactive Prompt**: If no token is found, LDM will prompt you to enter it interactively and save it to your `~/.ldmrc` global config for future commands.
 
+> [!IMPORTANT]
+> **Subdomain Reservation Requirement:**
+> The `lfr-tunnel` gateway enforces strict security on custom subdomains. Before you can connect and request a specific custom subdomain (e.g., `--share-subdomain my-test-env`), **you must first reserve that exact subdomain** within your account on the `lfr-tunnel` management portal.
+> 
+> If you attempt to use an unreserved or unregistered custom subdomain, the tunnel connection will immediately fail with:
+> `Gateway Error (403): The custom subdomain 'my-test-env' must be reserved before use.`
+> `    💡 Fix: Go to https://portal.lfr-demo.se/portal#reservations and explicitly reserve 'my-test-env' in your account, OR choose a different subdomain.`
+
 ---
 
 ## Authentication for Ngrok
